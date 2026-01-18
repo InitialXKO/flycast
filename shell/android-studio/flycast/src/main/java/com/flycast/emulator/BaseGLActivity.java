@@ -59,6 +59,12 @@ public abstract class BaseGLActivity extends Activity implements ActivityCompat.
     private boolean hasKeyboard = false;
     private AndroidStorage storage;
 
+    // Quest 3 VR support
+    private boolean vrEnabled = false;
+    private int currentVRMode = 0; // 0=Cinema, 1=Arcade, 2=Immersive
+    private long lastVRModeSwitchTime = 0;
+    private static final long VR_MODE_SWITCH_COOLDOWN = 500; // 500ms cooldown
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -151,6 +157,9 @@ public abstract class BaseGLActivity extends Activity implements ActivityCompat.
 
         onConfigurationChanged(getResources().getConfiguration());
 
+        // Initialize Quest 3 VR support
+        initQuestVR();
+
         // When viewing a resource, pass its URI to the native code for opening
         Intent intent = getIntent();
         if (Intent.ACTION_VIEW.equals(intent.getAction())) {
@@ -199,6 +208,9 @@ public abstract class BaseGLActivity extends Activity implements ActivityCompat.
             audioBackend.release();
         Emulator.setCurrentActivity(null);
         stopEmulator();
+
+        // Shutdown Quest 3 VR
+        shutdownQuestVR();
     }
 
     @Override
@@ -274,8 +286,8 @@ public abstract class BaseGLActivity extends Activity implements ActivityCompat.
             for (InputDevice.MotionRange range : axes)
             {
                 if ((range.getSource() & InputDevice.SOURCE_CLASS_MASK) != InputDevice.SOURCE_CLASS_JOYSTICK)
-		            // Ignore mouse/touchpad axes (dualshock 4)
-		            continue;
+                            // Ignore mouse/touchpad axes (dualshock 4)
+                            continue;
                 if (range.getAxis() == MotionEvent.AXIS_HAT_X) {
                     float v = event.getAxisValue(MotionEvent.AXIS_HAT_X, actionPointerIndex);
                     if (v == -1.0) {
@@ -343,6 +355,15 @@ public abstract class BaseGLActivity extends Activity implements ActivityCompat.
                 }
                 else {
                     showMenu();
+                }
+                return true;
+            }
+            // Quest 3 VR mode switch: KEYCODE_F1 or Controller Y button + D-Pad Up
+            if (vrEnabled && (keyCode == KeyEvent.KEYCODE_F1 || keyCode == KeyEvent.KEYCODE_TV_INPUT_EXTERNAL_1)) {
+                long currentTime = System.currentTimeMillis();
+                if (currentTime - lastVRModeSwitchTime > VR_MODE_SWITCH_COOLDOWN) {
+                    cycleVRMode();
+                    lastVRModeSwitchTime = currentTime;
                 }
                 return true;
             }
@@ -458,11 +479,151 @@ public abstract class BaseGLActivity extends Activity implements ActivityCompat.
 
     private static native void register(BaseGLActivity activity);
     
-	public String getNativeLibDir() {
+        public String getNativeLibDir() {
         return getApplicationContext().getApplicationInfo().nativeLibraryDir;
     }
     
-	public String getInternalFilesDir() {
+        public String getInternalFilesDir() {
         return getFilesDir().getAbsolutePath();
+    }
+
+    // ==================== Quest 3 VR Integration ====================
+
+    /**
+     * Initialize Quest 3 VR system
+     */
+    private void initQuestVR() {
+        try {
+            Log.i("flycast", "Initializing Quest 3 VR...");
+            boolean success = JNIdc.initVR(this, this);
+            if (success) {
+                vrEnabled = JNIdc.isVREnabled();
+                currentVRMode = JNIdc.getVRGameMode();
+                Log.i("flycast", "Quest 3 VR initialized successfully. Mode: " + currentVRMode);
+            } else {
+                Log.w("flycast", "Failed to initialize Quest 3 VR");
+                vrEnabled = false;
+            }
+        } catch (UnsatisfiedLinkError e) {
+            Log.w("flycast", "VR methods not available (not compiled with VR support): " + e.getMessage());
+            vrEnabled = false;
+        } catch (Exception e) {
+            Log.e("flycast", "Error initializing VR: " + e.getMessage(), e);
+            vrEnabled = false;
+        }
+    }
+
+    /**
+     * Shutdown Quest 3 VR system
+     */
+    private void shutdownQuestVR() {
+        if (vrEnabled) {
+            try {
+                Log.i("flycast", "Shutting down Quest 3 VR");
+                JNIdc.shutdownVR();
+                vrEnabled = false;
+            } catch (Exception e) {
+                Log.e("flycast", "Error shutting down VR: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    /**
+     * Check if VR is enabled and available
+     */
+    public boolean isVREnabled() {
+        return vrEnabled;
+    }
+
+    /**
+     * Set VR game mode
+     * @param mode 0=Cinema, 1=Arcade, 2=Immersive
+     */
+    public void setVRMode(int mode) {
+        if (!vrEnabled) {
+            Log.w("flycast", "VR is not enabled, cannot set mode");
+            return;
+        }
+
+        if (mode < 0 || mode > 2) {
+            Log.w("flycast", "Invalid VR mode: " + mode);
+            return;
+        }
+
+        try {
+            JNIdc.setVRGameMode(mode);
+            currentVRMode = mode;
+            String modeName = getVRModeName(mode);
+            Log.i("flycast", "VR mode set to: " + modeName + " (" + mode + ")");
+
+            // Show toast for user feedback
+            if (getApplicationContext() != null) {
+                android.widget.Toast.makeText(
+                    getApplicationContext(),
+                    "VR Mode: " + modeName,
+                    android.widget.Toast.LENGTH_SHORT
+                ).show();
+            }
+        } catch (Exception e) {
+            Log.e("flycast", "Error setting VR mode: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Cycle through VR modes (Cinema → Arcade → Immersive → Cinema)
+     */
+    public void cycleVRMode() {
+        if (!vrEnabled) {
+            Log.w("flycast", "VR is not enabled, cannot cycle mode");
+            return;
+        }
+
+        try {
+            // Note: cycleVRGameMode is not yet implemented in JNI
+            // Manual cycle for now
+            int nextMode = (currentVRMode + 1) % 3;
+            setVRMode(nextMode);
+        } catch (Exception e) {
+            Log.e("flycast", "Error cycling VR mode: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Get current VR mode
+     * @return 0=Cinema, 1=Arcade, 2=Immersive
+     */
+    public int getVRMode() {
+        return currentVRMode;
+    }
+
+    /**
+     * Get VR mode name for display
+     */
+    public String getVRModeName(int mode) {
+        switch (mode) {
+            case 0:
+                return "Cinema (影院)";
+            case 1:
+                return "Arcade (机台)";
+            case 2:
+                return "Immersive (沉浸)";
+            default:
+                return "Unknown";
+        }
+    }
+
+    /**
+     * Update VR frame (call this in rendering loop)
+     */
+    public void updateVRFrame() {
+        if (!vrEnabled) {
+            return;
+        }
+
+        try {
+            JNIdc.updateVR();
+        } catch (Exception e) {
+            Log.e("flycast", "Error updating VR frame: " + e.getMessage(), e);
+        }
     }
 }

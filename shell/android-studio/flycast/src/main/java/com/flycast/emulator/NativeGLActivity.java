@@ -50,8 +50,8 @@ public final class NativeGLActivity extends BaseGLActivity {
 
     @Override
     protected void doResume() {
-    	if (mView != null)
-	        mView.resume();
+        if (mView != null)
+                mView.resume();
     }
 
     @Override
@@ -78,6 +78,13 @@ public final class NativeGLActivity extends BaseGLActivity {
                 mView.setVGamepadEditMode(editing);
             }
         });
+    }
+
+    // Quest 3 VR mode switching
+    public void cycleVRMode() {
+        if (((BaseGLActivity)getActivity()).isVREnabled()) {
+            ((BaseGLActivity)getActivity()).cycleVRMode();
+        }
     }
 
     // On-screen keyboard borrowed from SDL core android code

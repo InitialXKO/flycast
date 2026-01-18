@@ -1,0 +1,122 @@
+name: Build Quest 3 VR APK
+
+on:
+  push:
+    branches: [ main, master, quest3-vr ]
+    paths:
+      - '.github/workflows/quest3-vr.yml'
+      - 'core/quest_vr/**'
+      - 'shell/android-studio/**'
+      - 'CMakeLists.txt'
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-quest3-apk:
+    name: Build Quest 3 VR APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install ccache cmake ninja-build
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: quest3-ccache-${{ github.sha }}
+          restore-keys: quest3-ccache-
+
+      - name: Download OpenXR SDK
+        run: |
+          cd /tmp
+          git clone --depth 1 https://github.com/KhronosGroup/OpenXR-SDK.git
+          echo "OpenXR SDK downloaded successfully"
+
+      - name: Download Android NDK r25c
+        run: |
+          cd /tmp
+          wget -q https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
+          unzip -q android-ndk-r25c-linux.zip
+          echo "ANDROID_NDK=/tmp/android-ndk-r25c" >> $GITHUB_ENV
+
+      - name: Set ANDROID_NDK_HOME
+        run: |
+          echo "ANDROID_NDK_HOME=/tmp/android-ndk-r25c" >> $GITHUB_ENV
+          echo "/tmp/android-ndk-r25c" >> $GITHUB_PATH
+
+      - name: Disable release signing
+        run: |
+          sed -i 's/signingConfig signingConfigs.release/signingConfig signingConfigs.debug/g' \
+            shell/android-studio/flycast/build.gradle
+
+      - name: Bump version code
+        uses: chkfung/android-version-actions@v1.2.2
+        with:
+          gradlePath: shell/android-studio/flycast/build.gradle
+          versionCode: ${{ github.run_number }}
+
+      - name: Make gradlew executable
+        working-directory: shell/android-studio
+        run: chmod +x gradlew
+
+      - name: Build Quest 3 VR APK
+        working-directory: shell/android-studio
+        run: |
+          export ANDROID_NDK=/tmp/android-ndk-r25c
+          export ANDROID_NDK_HOME=/tmp/android-ndk-r25c
+          ./gradlew assembleRelease -x lint \
+            -PabiFilters=arm64-v8a \
+            -PtargetSdk=35 \
+            -PminSdk=29
+        env:
+          SENTRY_UPLOAD_URL: ''
+          ANDROID_KEYSTORE_PASSWORD: ''
+
+      - name: Rename APK
+        run: |
+          cp shell/android-studio/flycast/build/outputs/apk/release/flycast-release.apk \
+             flycast-quest3-vr-${{ github.run_number }}.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flycast-quest3-vr-apk
+          path: flycast-quest3-vr-*.apk
+          retention-days: 90
+
+      - name: Generate build info
+        run: |
+          echo "# Flycast Quest 3 VR Build" > build-info.md
+          echo "" >> build-info.md
+          echo "**Build Number:** ${{ github.run_number }}" >> build-info.md
+          echo "**Commit:** ${{ github.sha }}" >> build-info.md
+          echo "**Branch:** ${{ github.ref }}" >> build-info.md
+          echo "**Date:** $(date -u +%Y-%m-%d\ %H:%M:%S\ UTC)" >> build-info.md
+          echo "" >> build-info.md
+          echo "## Features" >> build-info.md
+          echo "- OpenXR VR Support for Meta Quest 3" >> build-info.md
+          echo "- Vulkan Rendering" >> build-info.md
+          echo "- Three Game Modes:" >> build-info.md
+          echo "  - Virtual Cinema Mode" >> build-info.md
+          echo "  - Virtual Arcade Cabinet Mode" >> build-info.md
+          echo "  - Full 6DOF Immersive Mode" >> build-info.md
+          echo "- Controller Mapping for Dreamcast" >> build-info.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-info
+          path: build-info.md
+          retention-days: 90

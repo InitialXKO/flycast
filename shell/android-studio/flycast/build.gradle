@@ -12,8 +12,8 @@ def getVersionName = { ->
 }
 
 def getSentryUrl = { ->
-	def url = System.env.SENTRY_UPLOAD_URL
-	return url == null ? "" : url
+        def url = System.env.SENTRY_UPLOAD_URL
+        return url == null ? "" : url
 }
 
 android {
@@ -23,7 +23,7 @@ android {
 
     defaultConfig {
         applicationId "com.flycast.emulator"
-        minSdk 21
+        minSdk 29  // Quest 3 requires API 29+
         //noinspection ExpiredTargetSdkVersion
         targetSdk 35
         versionCode 8
@@ -32,11 +32,18 @@ android {
 
         externalNativeBuild {
             cmake {
-                arguments "-DANDROID_ARM_MODE=arm", "-DSENTRY_UPLOAD_URL=" + getSentryUrl(), "-DUSE_OPENMP=OFF"
+                arguments "-DANDROID_ARM_MODE=arm",
+                          "-DSENTRY_UPLOAD_URL=" + getSentryUrl(),
+                          "-DUSE_OPENMP=OFF",
+                          "-DUSE_VULKAN=ON",
+                          "-DUSE_OPENXR=ON"
+                cFlags "-DQUEST_VR_ENABLED"
+                cppFlags "-DQUEST_VR_ENABLED -std=c++17"
             }
         }
 
         ndk {
+            abiFilters 'arm64-v8a'  // Quest 3 uses ARM64
             moduleName 'flycast'
         }
         lintOptions {
@@ -62,7 +69,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            signingConfig signingConfigs.debug
         }
     }
     compileOptions {
