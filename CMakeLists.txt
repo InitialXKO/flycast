@@ -1387,8 +1387,8 @@ if(NOT LIBRETRO)
                                 core/quest_vr/quest_vr_jni.cpp
                         )
 
-                        # Define OpenXR macros for Vulkan and Android platform
-                        target_compile_definitions(${PROJECT_NAME} PRIVATE
+                        # Define OpenXR macros for Vulkan and Android platform (PUBLIC so included headers can see them)
+                        target_compile_definitions(${PROJECT_NAME} PUBLIC
                                 XR_USE_GRAPHICS_API_VULKAN=1
                                 XR_USE_PLATFORM_ANDROID=1
                         )
