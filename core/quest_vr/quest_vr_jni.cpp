@@ -132,8 +132,8 @@ Java_com_flycast_emulator_emu_JNIdc_setVRGameMode(JNIEnv* env, jclass clazz, jin
         jclass activityClass = env->GetObjectClass(g_activity);
         jmethodID showToast = env->GetMethodID(activityClass, "showToast", "(Ljava/lang/String;)V");
         if (showToast) {
-            const char* modeName = g_vrManager->GetGameModeName(mode);
-            jstring jModeName = env->NewStringUTF8(modeName);
+            const char* modeName = g_vrManager->GetGameModeName(vrMode);
+            jstring jModeName = env->NewStringUTF(modeName);
             env->CallVoidMethod(g_activity, showToast, jModeName);
             env->DeleteLocalRef(jModeName);
         }

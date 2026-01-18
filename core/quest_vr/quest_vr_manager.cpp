@@ -75,9 +75,24 @@ bool QuestVRManager::Initialize() {
 }
 
 void QuestVRManager::Shutdown() {
-    if (session_ != XR_NULL_HANDLE) {
-        xrDestroySession(session_);
-        session_ = XR_NULL_HANDLE;
+    // Destroy swapchains
+    for (int i = 0; i < VIEW_COUNT; i++) {
+        if (swapchains_[i].swapchain != XR_NULL_HANDLE) {
+            xrDestroySwapchain(swapchains_[i].swapchain);
+            swapchains_[i].swapchain = XR_NULL_HANDLE;
+        }
+    }
+
+    // Destroy controller spaces and action sets
+    for (int i = 0; i < 2; i++) {
+        if (controllers_[i].space != XR_NULL_HANDLE) {
+            xrDestroySpace(controllers_[i].space);
+            controllers_[i].space = XR_NULL_HANDLE;
+        }
+        if (controllers_[i].actionSet != XR_NULL_HANDLE) {
+            xrDestroyActionSet(controllers_[i].actionSet);
+            controllers_[i].actionSet = XR_NULL_HANDLE;
+        }
     }
 
     if (space_ != XR_NULL_HANDLE) {
@@ -85,9 +100,25 @@ void QuestVRManager::Shutdown() {
         space_ = XR_NULL_HANDLE;
     }
 
+    if (session_ != XR_NULL_HANDLE) {
+        xrDestroySession(session_);
+        session_ = XR_NULL_HANDLE;
+    }
+
     if (instance_ != XR_NULL_HANDLE) {
         xrDestroyInstance(instance_);
         instance_ = XR_NULL_HANDLE;
+    }
+
+    // Destroy Vulkan resources
+    if (vkDevice_ != VK_NULL_HANDLE) {
+        vkDestroyDevice(vkDevice_, nullptr);
+        vkDevice_ = VK_NULL_HANDLE;
+    }
+
+    if (vkInstance_ != VK_NULL_HANDLE) {
+        vkDestroyInstance(vkInstance_, nullptr);
+        vkInstance_ = VK_NULL_HANDLE;
     }
 
     sessionRunning_ = false;
@@ -316,6 +347,7 @@ bool QuestVRManager::CreateSpaces() {
 bool QuestVRManager::BeginFrame() {
     if (!sessionRunning_) {
         XrSessionBeginInfo beginInfo{XR_TYPE_SESSION_BEGIN_INFO};
+        beginInfo.primaryViewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
         XrResult result = xrBeginSession(session_, &beginInfo);
         if (result != XR_SUCCESS) {
             LOGE("xrBeginSession failed: %d", result);
@@ -328,6 +360,13 @@ bool QuestVRManager::BeginFrame() {
     XrResult result = xrWaitFrame(session_, &frameWaitInfo, &frameState_);
 
     if (result != XR_SUCCESS || !frameState_.shouldRender) {
+        return false;
+    }
+
+    XrFrameBeginInfo frameBeginInfo{XR_TYPE_FRAME_BEGIN_INFO};
+    result = xrBeginFrame(session_, &frameBeginInfo);
+    if (result != XR_SUCCESS) {
+        LOGE("xrBeginFrame failed: %d", result);
         return false;
     }
 
@@ -349,8 +388,9 @@ void QuestVRManager::GetViewTransforms(int viewCount, XrView* views) {
     viewLocateInfo.displayTime = frameState_.predictedDisplayTime;
     viewLocateInfo.space = space_;
 
+    uint32_t viewCountOutput = 0;
     XrResult result = xrLocateViews(session_, &viewLocateInfo, &viewState, 
-                                       static_cast<uint32_t>(viewCount), views);
+                                       static_cast<uint32_t>(viewCount), &viewCountOutput, views);
     if (result != XR_SUCCESS) {
         LOGE("xrLocateViews failed: %d", result);
         return;
@@ -387,13 +427,17 @@ uint32_t QuestVRManager::GetSwapchainHeight(int eye) const {
 
 void QuestVRManager::UpdateInput() {
     // Update controller states (simplified)
+    XrActiveActionSet activeActionSets[2];
     for (int i = 0; i < 2; i++) {
-        XrActiveActionSet activeActionSet{XR_TYPE_ACTIVE_ACTION_SET};
-        activeActionSet.actionSet = controllers_[i].actionSet;
-        activeActionSet.subactionPath = XR_NULL_PATH;
-
-        xrSyncActions(session_, &activeActionSet);
+        activeActionSets[i].actionSet = controllers_[i].actionSet;
+        activeActionSets[i].subactionPath = XR_NULL_PATH;
     }
+
+    XrActionsSyncInfo syncInfo{XR_TYPE_ACTIONS_SYNC_INFO};
+    syncInfo.countActiveActionSets = 2;
+    syncInfo.activeActionSets = activeActionSets;
+
+    xrSyncActions(session_, &syncInfo);
 }
 
 const ControllerState& QuestVRManager::GetControllerState(int index) const {
