@@ -1387,6 +1387,12 @@ if(NOT LIBRETRO)
                                 core/quest_vr/quest_vr_jni.cpp
                         )
 
+                        # Define OpenXR macros for Vulkan and Android platform
+                        target_compile_definitions(${PROJECT_NAME} PRIVATE
+                                XR_USE_GRAPHICS_API_VULKAN=1
+                                XR_USE_PLATFORM_ANDROID=1
+                        )
+
                         # Link OpenXR and Vulkan libraries
                         target_link_libraries(${PROJECT_NAME} PRIVATE
                                 vulkan
