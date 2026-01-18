@@ -18,7 +18,7 @@ def getSentryUrl = { ->
 
 android {
     namespace 'com.flycast.emulator'
-    ndkVersion '29.0.14206865'
+    ndkVersion '25.2.9519653'
     compileSdk 35
 
     defaultConfig {

@@ -3,9 +3,9 @@
 
 #ifdef USE_VULKAN
 
+#include <vulkan/vulkan.h>
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
-#include <vulkan/vulkan.h>
 #include <android/log.h>
 #include <vector>
 #include <memory>

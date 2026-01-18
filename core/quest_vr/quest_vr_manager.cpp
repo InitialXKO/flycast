@@ -111,15 +111,16 @@ void QuestVRManager::Shutdown() {
     }
 
     // Destroy Vulkan resources
-    if (vkDevice_ != VK_NULL_HANDLE) {
-        vkDestroyDevice(vkDevice_, nullptr);
-        vkDevice_ = VK_NULL_HANDLE;
-    }
-
-    if (vkInstance_ != VK_NULL_HANDLE) {
-        vkDestroyInstance(vkInstance_, nullptr);
-        vkInstance_ = VK_NULL_HANDLE;
-    }
+    // TODO: Re-enable when Vulkan initialization is implemented
+    // if (vkDevice_ != VK_NULL_HANDLE) {
+    //     vkDestroyDevice(vkDevice_, nullptr);
+    //     vkDevice_ = VK_NULL_HANDLE;
+    // }
+    //
+    // if (vkInstance_ != VK_NULL_HANDLE) {
+    //     vkDestroyInstance(vkInstance_, nullptr);
+    //     vkInstance_ = VK_NULL_HANDLE;
+    // }
 
     sessionRunning_ = false;
     sessionFocused_ = false;
@@ -531,12 +532,14 @@ bool QuestVRManager::CreateVulkanInstance() {
         }
     }
 
-    VkResult vkResult = vkCreateInstance(&instanceCreateInfo, nullptr, &vkInstance_);
-    if (vkResult != VK_SUCCESS) {
-        LOGE("Failed to create Vulkan instance: %d", vkResult);
-        return false;
-    }
+    // TODO: Use xrCreateVulkanInstanceKHR instead of direct Vulkan calls
+    // VkResult vkResult = vkCreateInstance(&instanceCreateInfo, nullptr, &vkInstance_);
+    // if (vkResult != VK_SUCCESS) {
+    //     LOGE("Failed to create Vulkan instance: %d", vkResult);
+    //     return false;
+    // }
 
+    LOGE("CreateVulkanInstance not fully implemented - use existing Vulkan context");
     return true;
 }
 
@@ -556,39 +559,41 @@ bool QuestVRManager::CreateVulkanDevice() {
         return false;
     }
 
-    uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(vkPhysicalDevice_, &queueFamilyCount, nullptr);
+    // TODO: Use xrCreateVulkanDeviceKHR instead of direct Vulkan calls
+    // uint32_t queueFamilyCount = 0;
+    // vkGetPhysicalDeviceQueueFamilyProperties(vkPhysicalDevice_, &queueFamilyCount, nullptr);
+    //
+    // std::vector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyCount);
+    // vkGetPhysicalDeviceQueueFamilyProperties(vkPhysicalDevice_, &queueFamilyCount, queueFamilyProperties.data());
+    //
+    // for (uint32_t i = 0; i < queueFamilyCount; i++) {
+    //     if (queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+    //         vkQueueFamilyIndex_ = i;
+    //         break;
+    //     }
+    // }
+    //
+    // VkDeviceQueueCreateInfo queueCreateInfo{};
+    // queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+    // queueCreateInfo.queueFamilyIndex = vkQueueFamilyIndex_;
+    // queueCreateInfo.queueCount = 1;
+    // float queuePriority = 1.0f;
+    // queueCreateInfo.pQueuePriorities = &queuePriority;
+    //
+    // VkDeviceCreateInfo deviceCreateInfo{};
+    // deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    // deviceCreateInfo.queueCreateInfoCount = 1;
+    // deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
+    //
+    // VkResult vkResult = vkCreateDevice(vkPhysicalDevice_, &deviceCreateInfo, nullptr, &vkDevice_);
+    // if (vkResult != VK_SUCCESS) {
+    //     LOGE("Failed to create Vulkan device: %d", vkResult);
+    //     return false;
+    // }
+    //
+    // vkGetDeviceQueue(vkDevice_, vkQueueFamilyIndex_, 0, &vkQueue_);
 
-    std::vector<VkQueueFamilyProperties> queueFamilyProperties(queueFamilyCount);
-    vkGetPhysicalDeviceQueueFamilyProperties(vkPhysicalDevice_, &queueFamilyCount, queueFamilyProperties.data());
-
-    for (uint32_t i = 0; i < queueFamilyCount; i++) {
-        if (queueFamilyProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-            vkQueueFamilyIndex_ = i;
-            break;
-        }
-    }
-
-    VkDeviceQueueCreateInfo queueCreateInfo{};
-    queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queueCreateInfo.queueFamilyIndex = vkQueueFamilyIndex_;
-    queueCreateInfo.queueCount = 1;
-    float queuePriority = 1.0f;
-    queueCreateInfo.pQueuePriorities = &queuePriority;
-
-    VkDeviceCreateInfo deviceCreateInfo{};
-    deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    deviceCreateInfo.queueCreateInfoCount = 1;
-    deviceCreateInfo.pQueueCreateInfos = &queueCreateInfo;
-
-    VkResult vkResult = vkCreateDevice(vkPhysicalDevice_, &deviceCreateInfo, nullptr, &vkDevice_);
-    if (vkResult != VK_SUCCESS) {
-        LOGE("Failed to create Vulkan device: %d", vkResult);
-        return false;
-    }
-
-    vkGetDeviceQueue(vkDevice_, vkQueueFamilyIndex_, 0, &vkQueue_);
-
+    LOGE("CreateVulkanDevice not fully implemented - use existing Vulkan context");
     return true;
 }
 
