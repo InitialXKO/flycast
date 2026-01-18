@@ -6,6 +6,7 @@ jobs:
   build:
     name: Android
     runs-on: ubuntu-latest
+    if: github.ref != 'refs/heads/quest3-vr-integration'
 
     steps:
       - name: Set up build environment

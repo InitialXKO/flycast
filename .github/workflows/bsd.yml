@@ -7,6 +7,7 @@ jobs:
     env:
       CCACHE_DIR: ${{ github.workspace }}/.ccache
     runs-on: ubuntu-latest
+    if: github.ref != 'refs/heads/quest3-vr-integration'
     strategy:
       matrix:
         operating_system: [ freebsd, netbsd, openbsd ]

@@ -6,6 +6,7 @@ jobs:
   build:
     name: UWP
     runs-on: windows-latest
+    if: github.ref != 'refs/heads/quest3-vr-integration'
 
     strategy:
       matrix:

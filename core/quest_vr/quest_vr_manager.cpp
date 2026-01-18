@@ -437,20 +437,83 @@ QuestVRManager::DreamcastInput QuestVRManager::GetDreamcastInput() const {
     return dcInput;
 }
 
-// ========== Vulkan 初始化占位 ==========
+// ========== Vulkan 初始化 ==========
 
 bool QuestVRManager::CreateVulkanInstance() {
-    // Placeholder - would need actual Vulkan context
+    XrVulkanInstanceCreateInfoKHR createInfo{XR_TYPE_VULKAN_INSTANCE_CREATE_INFO_KHR};
+    createInfo.systemId = systemId_;
+    createInfo.pfnGetInstanceProcAddr = vkGetInstanceProcAddr;
+
+    PFN_xrGetVulkanInstanceExtensionsKHR xrGetVulkanInstanceExtensionsKHR;
+    xrGetInstanceProcAddr(instance_, "xrGetVulkanInstanceExtensionsKHR",
+                         (PFN_xrVoidFunction*)&xrGetVulkanInstanceExtensionsKHR);
+
+    uint32_t extensionCount = 0;
+    xrGetVulkanInstanceExtensionsKHR(instance_, systemId_, 0, &extensionCount, nullptr);
+    std::vector<char> extensions(extensionCount * 256);
+    xrGetVulkanInstanceExtensionsKHR(instance_, systemId_, extensionCount * 256,
+                                     &extensionCount, extensions.data());
+
+    VkApplicationInfo appInfo{};
+    appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    appInfo.pApplicationName = "Flycast Quest 3 VR";
+    appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.pEngineName = "Flycast VR Engine";
+    appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+    appInfo.apiVersion = VK_API_VERSION_1_1;
+
+    VkInstanceCreateInfo instanceCreateInfo{};
+    instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    instanceCreateInfo.pApplicationInfo = &appInfo;
+
+    VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &vkInstance_);
+    if (result != VK_SUCCESS) {
+        LOGE("Failed to create Vulkan instance: %d", result);
+        return false;
+    }
+
     return true;
 }
 
 bool QuestVRManager::CreateVulkanDevice() {
-    // Placeholder
+    XrVulkanDeviceCreateInfoKHR createInfo{XR_TYPE_VULKAN_DEVICE_CREATE_INFO_KHR};
+    createInfo.systemId = systemId_;
+    createInfo.pfnGetInstanceProcAddr = vkGetInstanceProcAddr;
+    createInfo.vulkanPhysicalDevice = vkPhysicalDevice_;
+    createInfo.vulkanCreateInfo = nullptr;
+
+    PFN_xrGetVulkanGraphicsDeviceKHR xrGetVulkanGraphicsDeviceKHR;
+    xrGetInstanceProcAddr(instance_, "xrGetVulkanGraphicsDeviceKHR",
+                         (PFN_xrVoidFunction*)&xrGetVulkanGraphicsDeviceKHR);
+
+    XrResult result = xrGetVulkanGraphicsDeviceKHR(instance_, systemId_, vkInstance_, &vkPhysicalDevice_);
+    if (result != XR_SUCCESS) {
+        LOGE("Failed to get Vulkan physical device: %d", result);
+        return false;
+    }
+
     return true;
 }
 
 bool QuestVRManager::CreateVulkanSwapchainImages() {
-    // Placeholder
+    for (int eye = 0; eye < VIEW_COUNT; eye++) {
+        uint32_t imageCount = 0;
+        xrEnumerateSwapchainImages(swapchains_[eye].swapchain, 0, &imageCount, nullptr);
+
+        std::vector<XrSwapchainImageBaseHeader*> images(imageCount);
+        std::vector<XrSwapchainImageVulkanKHR> vulkanImages(imageCount);
+
+        for (uint32_t i = 0; i < imageCount; i++) {
+            vulkanImages[i].type = XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR;
+            images[i] = reinterpret_cast<XrSwapchainImageBaseHeader*>(&vulkanImages[i]);
+        }
+
+        xrEnumerateSwapchainImages(swapchains_[eye].swapchain, imageCount, &imageCount,
+                                   reinterpret_cast<XrSwapchainImageBaseHeader*>(images.data()));
+
+        swapchains_[eye].images.assign(vulkanImages.begin(), vulkanImages.end());
+    }
+
     return true;
 }
 
