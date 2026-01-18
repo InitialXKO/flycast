@@ -4,10 +4,6 @@
 #include <android/asset_manager.h>
 
 #ifdef USE_VULKAN
-
-// Define OpenXR Vulkan support BEFORE including OpenXR headers
-#define XR_USE_GRAPHICS_API_VULKAN 1
-
 #include "quest_vr_manager.h"
 #include "vulkan_renderer_quest.h"
 #endif
