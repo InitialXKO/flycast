@@ -3,9 +3,12 @@
 
 #ifdef USE_VULKAN
 
+// Define OpenXR Vulkan support BEFORE including OpenXR headers
+#define XR_USE_GRAPHICS_API_VULKAN 1
+
+#include "quest_vr_manager.h"
 #include <vulkan/vulkan.h>
 #include <vector>
-#include "quest_vr_manager.h"
 
 namespace QuestVR {
 
