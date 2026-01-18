@@ -1379,7 +1379,7 @@ if(NOT LIBRETRO)
                         # OpenXR and Quest VR include directories
                         target_include_directories(${PROJECT_NAME} PRIVATE
                                 core/quest_vr
-                                ${CMAKE_CURRENT_SOURCE_DIR}/OpenXR-SDK/include
+                                ${CMAKE_CURRENT_SOURCE_DIR}/core/deps/OpenXR-SDK/include
                         )
 
                         # Quest VR JNI source
