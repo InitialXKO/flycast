@@ -3,9 +3,13 @@
 
 #ifdef USE_VULKAN
 
+// Define OpenXR Vulkan support before including headers
+#define XR_USE_GRAPHICS_API_VULKAN 1
+
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 #include <vulkan/vulkan.h>
+#include <android/log.h>
 #include <vector>
 #include <memory>
 
@@ -152,11 +156,18 @@ private:
     // State
     bool sessionRunning_;
     bool sessionFocused_;
-    
+
     // ========== 模式切换相关私有成员 ==========
-    
+
     GameMode currentMode_;  // 当前游戏模式
-    
+
+    // Vulkan objects for OpenXR integration
+    VkInstance vkInstance_;
+    VkPhysicalDevice vkPhysicalDevice_;
+    VkDevice vkDevice_;
+    VkQueue vkQueue_;
+    uint32_t vkQueueFamilyIndex_;
+
     // 根据模式计算虚拟屏幕位置
     XrPosef CalculateGameModePose(GameMode mode, const XrPosef& headPose) const;
 };
