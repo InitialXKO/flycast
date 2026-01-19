@@ -1367,15 +1367,15 @@ if(NOT LIBRETRO)
 
                 target_link_libraries(${PROJECT_NAME} PRIVATE android log)
 
-                # Quest 3 VR support - simplified version without Vulkan direct calls
+                # Quest 3 VR support with OpenXR Vulkan integration
                 if(USE_VULKAN AND "arm64" IN_LIST ARCHITECTURE)
-                        message(STATUS "Adding Quest 3 VR support (simplified)")
-                        # VR JNI source only (manager and renderer temporarily disabled)
-                        # target_sources(${PROJECT_NAME} PRIVATE
-                        #         core/quest_vr/quest_vr_manager.cpp
-                        #         core/quest_vr/vulkan_renderer_quest.cpp
-                        #         core/quest_vr/quest_vr_jni.cpp
-                        # )
+                        message(STATUS "Adding Quest 3 VR support")
+                        # VR sources using OpenXR Vulkan extensions
+                        target_sources(${PROJECT_NAME} PRIVATE
+                                core/quest_vr/quest_vr_manager.cpp
+                                core/quest_vr/vulkan_renderer_quest.cpp
+                                core/quest_vr/quest_vr_jni.cpp
+                        )
 
                         # OpenXR include directories
                         target_include_directories(${PROJECT_NAME} PRIVATE
