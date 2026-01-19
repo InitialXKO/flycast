@@ -2,7 +2,7 @@ name: Build Quest 3 VR APK
 
 on:
   push:
-    branches: [ main, master, quest3-vr, quest3-vr-integration ]
+    branches: [ main, master, check-vr-implementation, quest3-vr-integration ]
     paths:
       - '.github/workflows/quest3-vr.yml'
       - 'core/quest_vr/**'

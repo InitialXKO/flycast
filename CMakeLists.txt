@@ -1367,35 +1367,26 @@ if(NOT LIBRETRO)
 
                 target_link_libraries(${PROJECT_NAME} PRIVATE android log)
 
-                # Quest 3 VR support
+                # Quest 3 VR support with OpenXR Vulkan integration
                 if(USE_VULKAN AND "arm64" IN_LIST ARCHITECTURE)
                         message(STATUS "Adding Quest 3 VR support")
-                        # VR sources are in core/quest_vr
+                        # VR sources using OpenXR Vulkan extensions
                         target_sources(${PROJECT_NAME} PRIVATE
                                 core/quest_vr/quest_vr_manager.cpp
                                 core/quest_vr/vulkan_renderer_quest.cpp
+                                core/quest_vr/quest_vr_jni.cpp
                         )
 
-                        # OpenXR and Quest VR include directories
+                        # OpenXR include directories
                         target_include_directories(${PROJECT_NAME} PRIVATE
                                 core/quest_vr
                                 ${CMAKE_CURRENT_SOURCE_DIR}/core/deps/OpenXR-SDK/include
                         )
 
-                        # Quest VR JNI source
-                        target_sources(${PROJECT_NAME} PRIVATE
-                                core/quest_vr/quest_vr_jni.cpp
-                        )
-
-                        # Define OpenXR macros for Vulkan and Android platform (PUBLIC so included headers can see them)
+                        # Define OpenXR macros for Vulkan and Android platform
                         target_compile_definitions(${PROJECT_NAME} PUBLIC
                                 XR_USE_GRAPHICS_API_VULKAN=1
                                 XR_USE_PLATFORM_ANDROID=1
-                        )
-
-                        # Link OpenXR and Vulkan libraries
-                        target_link_libraries(${PROJECT_NAME} PRIVATE
-                                vulkan
                         )
                 endif()
         elseif(APPLE)

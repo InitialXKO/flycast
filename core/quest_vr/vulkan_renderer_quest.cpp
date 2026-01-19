@@ -4,6 +4,7 @@
 #include <cstring>
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
 
 namespace QuestVR {
 
